@@ -4,6 +4,9 @@ branding:
   icon: 'check-square'
   color: 'blue'
 inputs:
+  token:
+    description: 'GITHUB_TOKEN or a repo scoped PAT.'
+    default: ${{ github.token }}
   jiraBaseUrl:
     description: Jira base url
     required: true
