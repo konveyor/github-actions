@@ -1,0 +1,29 @@
+name: Reconcile GitHub Issue with Jira
+description: |
+  This action takes a GitHub Issue and ensures that it is appropriately
+  represented in Jira.
+branding:
+  icon: 'check-square'
+  color: 'blue'
+inputs:
+  token:
+    description: 'GITHUB_TOKEN or a repo scoped PAT.'
+    default: ${{ github.token }}
+  jiraBaseUrl:
+    description: Jira base url
+    required: true
+  jiraToken:
+    description: Jira token
+    required: true
+  project:
+    description: Key of the project
+    required: true
+  additionalLabels:
+    description: |
+      Comma separated list of labels that should be added to Jira issues.
+outputs:
+  issue:
+    description: Key of the newly created issue
+runs:
+  using: 'node16'
+  main: '../lib/actions/reconcile-issue.js'
