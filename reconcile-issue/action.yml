@@ -15,8 +15,8 @@ inputs:
   jiraToken:
     description: Jira token
     required: true
-  project:
-    description: Key of the project
+  jiraProject:
+    description: Key of the project (ie. MIG)
     required: true
   additionalLabels:
     description: |
