@@ -1,159 +1,10 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
+import { GitHubIssue } from "../github-issue";
+import { Jira } from "../jira";
 import { components } from "@octokit/openapi-types";
-import axios from "axios";
 
-// TODO(djzager)
 type Issue = components["schemas"]["issue"];
-
-// TODO(djzager): don't know if these are universal
-// JiraTransitions - hold the id for the transitions we are concerned about.
-// these can be found on:
-// https://issues.redhat.com/rest/api/2/issue/{issueKey}/transitions
-enum JiraTransitions {
-  Backlog = "11",
-  SelectedForDevelopment = "21",
-  InProgress = "31",
-  Done = "41",
-  QE = "51",
-}
-
-class Jira {
-  baseUrl: string;
-  project: string;
-  token: string;
-
-  constructor(baseUrl: string, project: string, token: string) {
-    this.baseUrl = baseUrl;
-    this.project = project;
-    this.token = token;
-  }
-
-  // getIssueUrl takes the key (ie. konveyor/crane#1234) and returns the url
-  // https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issue-search/#api-rest-api-2-jql-match-post
-  async getIssueUrl(key: string): Promise<string> {
-    try {
-      let jiraIssues = await axios.get(
-        this.baseUrl +
-          "/rest/api/2/search?jql=" +
-          encodeURIComponent(`project = ${this.project} AND labels = "${key}"`),
-        { headers: { Authorization: `Bearer ${this.token}` } }
-      );
-
-      // This tells us how many issues in jira matched our query. We expect only one or zero.
-      var numJiraIssues = jiraIssues.data.total;
-      if (numJiraIssues > 1) {
-        console.dir(jiraIssues.data, { depth: null });
-        core.setFailed(
-          `Something unexpected happened, expected 0 or 1 issues, found ${numJiraIssues}`
-        );
-      }
-      if (numJiraIssues == 0) {
-        core.info(
-          `No issues found in Jira with project (${this.project}) and label (${key}).`
-        );
-        return "";
-      }
-      return jiraIssues.data.issues[0].self;
-    } catch (error) {
-      core.setFailed(
-        `Something went wrong searching for issue "${key}" in Jira: ${error}`
-      );
-      return "";
-    }
-  }
-
-  // getJiraIssueStatus returns the current status as a string
-  async getJiraIssueStatus(url: string): Promise<string> {
-    let statusUrl = url + "?fields=status";
-    let jiraStatus;
-    // Get issues in the project with our ghIssueKey label. There should only ever be one.
-    try {
-      ({
-        data: {
-          fields: {
-            status: { name: jiraStatus },
-          },
-        },
-      } = await axios.get(statusUrl, {
-        headers: { Authorization: `Bearer ${this.token}` },
-      }));
-      core.info(`Jira issue at url (${url}) has status: ${jiraStatus}`);
-    } catch (error) {
-      core.setFailed(`Something went wrong getting ${statusUrl}: ${error}`);
-    }
-
-    return jiraStatus;
-  }
-
-  async issueIsDone(url: string): Promise<boolean> {
-    return (await this.getJiraIssueStatus(url)) == "Done";
-  }
-
-  async transitionDone(url: string) {
-    try {
-      // TODO(djzager): Need to move this to QE when appropriate rather than just Done.
-      // Perhaps we can inspect the labels?
-      let response = await axios.post(
-        url,
-        {
-          update: {
-            comment: [
-              {
-                add: {
-                  body: `Associated GitHub Issue has been closed.`,
-                },
-              },
-            ],
-          },
-          transition: { id: JiraTransitions.Done },
-        },
-        { headers: { Authorization: `Bearer ${this.token}` } }
-      );
-      console.log(response);
-    } catch (error) {
-      core.setFailed(`Something went wrong closing issue ${url}: ${error}`);
-    }
-  }
-}
-
-// our opinionated view of a GitHub Issue.
-class GitHubIssue {
-  token: string;
-  owner: string;
-  repo: string;
-  number: number;
-  issue: Issue;
-
-  constructor(
-    token: string,
-    owner: string,
-    repo: string,
-    number: number,
-    issue: Issue
-  ) {
-    this.token = token;
-    this.owner = owner;
-    this.repo = repo;
-    this.number = number;
-    this.issue = issue;
-  }
-
-  key(): string {
-    return `${this.owner}/${this.repo}#${this.number}`;
-  }
-
-  async labels(): Promise<string[]> {
-    return this.issue.labels.map((label) => {
-      if (typeof label === "string") return label as string;
-      return (label as components["schemas"]["label"]).name;
-    });
-  }
-
-  isClosed(): boolean {
-    return this.issue.state == "closed";
-  }
-}
 
 async function reconcileIssue() {
   const inputs = {
@@ -172,9 +23,9 @@ async function reconcileIssue() {
     return;
   }
 
+  // Then, go get the issue.
   const octokit = github.getOctokit(inputs.token);
   const { owner, repo, number } = context.issue;
-
   let issue: Issue;
   try {
     ({ data: issue } = await octokit.rest.issues.get({
@@ -200,35 +51,99 @@ async function reconcileIssue() {
   // Only states allowed for GitHub issues are open/closed
   // https://docs.github.com/en/rest/issues/issues#get-an-issue
   if (ghIssue.isClosed()) {
-    let jiraUrl = await jira.getIssueUrl(ghIssue.key());
-    if (jiraUrl == "") {
-      core.info("No corresponding Jira found for this closed issue.");
+    let jiraUrl: string;
+    try {
+      jiraUrl = await jira.getIssueUrl(ghIssue.key());
+      if (jiraUrl == "") {
+        core.info("No corresponding Jira found for this closed issue");
+        return;
+      }
+      core.info("Jira issue url found: " + jiraUrl);
+    } catch (error) {
+      core.setFailed(
+        `Something went wrong searching for issue "${ghIssue.key()}" in Jira: ${error}`
+      );
       return;
     }
-    core.info("Jira issue url found: " + jiraUrl);
 
-    if (!jira.issueIsDone(jiraUrl)) {
-      jira.transitionDone(jiraUrl);
+    try {
+      if (!jira.issueIsDone(jiraUrl)) {
+        jira.transitionDone(jiraUrl);
+      }
+    } catch (error) {
+      core.setFailed(`Something went wrong closing issue ${jiraUrl}: ${error}`);
     }
-    core.info("Reconcile complete");
     return;
   }
 
-  // if (!labels.includes("triage/accepted")) {
-  // }
+  // We will only write to Jira, GH Issues that have been triaged.
+  // https://www.kubernetes.dev/docs/guide/issue-triage/
+  if (!ghIssue.isTriageAccepted()) {
+    core.info("This issue needs triage");
+    try {
+      if (ghIssue.isNeedsTriage()) {
+        core.info("This issue already marked as needing triage");
+        return;
+      }
+      ghIssue.markNeedsTriage();
+    } catch (error) {
+      core.setFailed(
+        `Failed to set GitHub Issue ${owner}/${repo}#${number} as needing triage: ${error}`
+      );
+    }
+    return;
+  }
 
-  // This is the url to use when interacting with this Jira issue
-  // const jiraIssue = await axios.get(jiraIssues.data.issues[0].self, {
-  //   headers: { Authorization: `Bearer ${inputs.jiraToken}` },
-  // });
-  // console.dir(jiraIssue, { depth: null });
+  // jiraIssueParams are the primary fields we are concerned with updating
+  // on the jira issue.
+  // We will apply the following labels:
+  // + the additional labels specified in the action
+  // + the repo id (ie. konveyor/crane) for filtering
+  // + the key (ie. konveyor/crane#1234) that links the Issue
+  // TODO(djzager): since jira doesn't allow labels with spaces we
+  // will likely need to slugify the github labels AND find a way to distinguish
+  // github labels from jira labels (maybe a gh: prefix).
+  let jiraIssueParams = {
+    isBug: ghIssue.isBug(),
+    summary: ghIssue.getTitle(),
+    description: ghIssue.getBody(),
+    labels: inputs.additionalLabels.concat(ghIssue.getRepoId(), ghIssue.key()),
+    url: ghIssue.getUrl(),
+    key: ghIssue.key(),
+  };
 
-  // await octokit.rest.issues.createComment({
-  //   owner: issue.owner,
-  //   repo: issue.repo,
-  //   issue_number: issue.number,
-  //   body: "foo",
-  // });
+  let jiraUrl: string;
+  try {
+    // If we find a linked jira, update it
+    jiraUrl = await jira.getIssueUrl(ghIssue.key());
+  } catch (error) {
+    core.setFailed(
+      `Failed to get Jira issue for key ${ghIssue.key()}: ${error}`
+    );
+    return;
+  }
+
+  // Update the issue if it already exists
+  try {
+    if (jiraUrl != "") {
+      core.info(`Jira issue url (${jiraUrl}) found, will update`);
+      await jira.updateIssue(jiraUrl, jiraIssueParams);
+      await ghIssue.addComment(`Jira issue updated: ${jiraUrl}`);
+      return;
+    }
+  } catch (error) {
+    core.setFailed(`Failed to update Jira Issue with url ${jiraUrl}: ${error}`);
+    return;
+  }
+
+  // Create the issue if it doesn't
+  try {
+    jiraUrl = await jira.createIssue(jiraIssueParams);
+    await ghIssue.addComment(`Jira issue created: ${jiraUrl}`);
+  } catch (error) {
+    core.setFailed(`Failed to create Jira Issue: ${error}`);
+  }
+  return;
 }
 
 reconcileIssue();
