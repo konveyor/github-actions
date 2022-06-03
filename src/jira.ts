@@ -302,6 +302,7 @@ class Jira {
     if (
       currentSummary == summary &&
       currentDescription == description &&
+      !addLabels.length &&
       !isDone
     ) {
       core.info("No changes needed");

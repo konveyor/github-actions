@@ -58,6 +58,13 @@ class GitHubIssue {
     });
   }
 
+  getLabelsSlugified(): string[] {
+    return this.issue.labels.map((label) => {
+      if (typeof label === "string") return label as string;
+      return `gh:${(label as Label).name.replace(/\s+/g, '-')}`;
+    });
+  }
+
   isClosed(): boolean {
     return this.issue.state == "closed";
   }
