@@ -53,18 +53,18 @@ class Jira {
   // getIssueUrl takes the key (ie. konveyor/crane#1234) and returns the url
   // https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issue-search/#api-rest-api-2-jql-match-post
   async getIssueUrl(key: string): Promise<string> {
+    const jqlQuery = encodeURIComponent(
+      `project = ${this.project} AND labels = "${key}"`
+    );
     const {
       data: { total: numIssues, issues: jiraIssues },
-    } = await axios.get(
-      this.baseUrl +
-        "/rest/api/2/search?jql=" +
-        encodeURIComponent(`project = ${this.project} AND labels = "${key}"`),
-      { headers: { Authorization: `Bearer ${this.token}` } }
-    );
+    } = await axios.get(`${this.baseUrl}/rest/api/2/search?jql=${jqlQuery}`, {
+      headers: { Authorization: `Bearer ${this.token}` },
+    });
 
     // This tells us how many issues in jira matched our query. We expect only one or zero.
     if (numIssues > 1) {
-      console.dir(jiraIssues.data, { depth: null });
+      console.dir(jiraIssues, { depth: null });
       throw `Expected to find 0 or 1 issues with key: ${key}, found ${numIssues}`;
     }
     if (numIssues == 0) {
@@ -79,9 +79,7 @@ class Jira {
   // getJiraHTMLUrl returns a non-rest URL for the specified jira issue
   async getJiraHTMLUrl(url: string): Promise<string> {
     const {
-      data: {
-        key: jiraKey,
-      },
+      data: { key: jiraKey },
     } = await axios.get(url, {
       headers: { Authorization: `Bearer ${this.token}` },
     });
@@ -92,14 +90,13 @@ class Jira {
   // getJiraIssueType retrieves the issueType from the specified jira
   // issue and returns it as a string
   async getJiraIssueType(url: string): Promise<string> {
-    const labelsUrl = url + "?fields=issuetype";
     const {
       data: {
         fields: {
           issuetype: { name: issueType },
         },
       },
-    } = await axios.get(labelsUrl, {
+    } = await axios.get(`${url}?fields=issuetype`, {
       headers: { Authorization: `Bearer ${this.token}` },
     });
     core.info(`Jira issue at url (${url}) has issuetype: ${issueType}`);
@@ -108,12 +105,11 @@ class Jira {
   }
 
   async getJiraIssueSummary(url: string): Promise<string> {
-    const labelsUrl = url + "?fields=summary";
     const {
       data: {
         fields: { summary: summary },
       },
-    } = await axios.get(labelsUrl, {
+    } = await axios.get(`${url}?fields=summary`, {
       headers: { Authorization: `Bearer ${this.token}` },
     });
     core.info(`Jira issue at url (${url}) has summary: ${summary}`);
@@ -122,12 +118,11 @@ class Jira {
   }
 
   async getJiraIssueDescription(url: string): Promise<string> {
-    const labelsUrl = url + "?fields=description";
     const {
       data: {
         fields: { description: description },
       },
-    } = await axios.get(labelsUrl, {
+    } = await axios.get(`${url}?fields=description`, {
       headers: { Authorization: `Bearer ${this.token}` },
     });
     core.info(`Jira issue at url (${url}) has description: ${description}`);
@@ -136,12 +131,11 @@ class Jira {
   }
 
   async getJiraIssueLabels(url: string): Promise<string[]> {
-    const labelsUrl = url + "?fields=labels";
     const {
       data: {
         fields: { labels: jiraLabels },
       },
-    } = await axios.get(labelsUrl, {
+    } = await axios.get(`${url}?fields=labels`, {
       headers: { Authorization: `Bearer ${this.token}` },
     });
     core.info(`Jira issue at url (${url}) has labels: ${jiraLabels}`);
@@ -150,18 +144,17 @@ class Jira {
   }
 
   async getJiraRemoteLinks(url: string): Promise<JiraRemoteLink[]> {
-    const remoteLinkUrl = url + "/remotelink";
-    const { data: remoteLinksData } = await axios
-      .get(remoteLinkUrl, {
-        headers: { Authorization: `Bearer ${this.token}` },
-      })
+    const { data: remoteLinksData } = await axios.get(`${url}/remotelink`, {
+      headers: { Authorization: `Bearer ${this.token}` },
+    });
 
     const remoteLinks = remoteLinksData.map((remoteLink) => ({
-        url: remoteLink.object.url,
-        title: remoteLink.object.title,
-        icon: remoteLink.object.icon,
-      }));
+      url: remoteLink.object.url,
+      title: remoteLink.object.title,
+      icon: remoteLink.object.icon,
+    }));
 
+    console.log(remoteLinks);
     return remoteLinks;
   }
 
@@ -176,14 +169,13 @@ class Jira {
 
   // getJiraIssueStatus returns the current status as a string
   async getJiraIssueStatus(url: string): Promise<string> {
-    const statusUrl = url + "?fields=status";
     const {
       data: {
         fields: {
           status: { name: jiraStatus },
         },
       },
-    } = await axios.get(statusUrl, {
+    } = await axios.get(`${url}?fields=status`, {
       headers: { Authorization: `Bearer ${this.token}` },
     });
     core.info(`Jira issue at url (${url}) has status: ${jiraStatus}`);
@@ -219,7 +211,7 @@ class Jira {
 
   async addRemoteLink(jiraUrl: string, url: string, key: string) {
     await axios.post(
-      jiraUrl,
+      `${jiraUrl}/remotelink`,
       {
         object: {
           url: url,
@@ -271,7 +263,7 @@ class Jira {
   async updateIssue(
     jiraUrl: string,
     { summary, description, labels, url, key }: JiraIssueParams
-  ) {
+  ): Promise<boolean> {
     // const issueType = isBug ? "Bug" : "Story";
     // const issueTypeId = JiraIssueTypes[issueType];
     // const currentType = await this.getJiraIssueType(url);
@@ -282,10 +274,17 @@ class Jira {
       .filter((label) => !currentLabels.includes(label))
       .map((str) => ({ add: str }));
 
+    // check for remote link first
+    if (!(await this.isRemoteLinkPresent(jiraUrl, key))) {
+      await this.addRemoteLink(jiraUrl, url, key);
+    }
+
     // don't bother updating if all the relevant fields are the same.
     if (currentSummary == summary && currentDescription == description) {
-      return;
+      core.info("No changes needed");
+      return false;
     }
+    core.info("Updating Jira");
 
     await axios.put(
       jiraUrl,
@@ -301,14 +300,7 @@ class Jira {
       },
       { headers: { Authorization: `Bearer ${this.token}` } }
     );
-
-    if (!(await this.isRemoteLinkPresent(jiraUrl, key))) {
-      core.info(`Remote link for ${key} not found`);
-      // Add remote link
-      await this.addRemoteLink(jiraUrl, url, key);
-      return;
-    }
-    core.info(`Remote link for ${key} found`);
+    return true;
   }
 }
 
