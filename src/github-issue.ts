@@ -100,7 +100,7 @@ class GitHubIssue {
       const comment = comments.find(
         (comment) =>
           comment.user &&
-          comment.user.login == "" &&
+          comment.user.login == "github-actions[bot]" &&
           comment.body &&
           comment.body.includes(body)
       );
