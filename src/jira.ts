@@ -209,6 +209,26 @@ class Jira {
     console.log(response);
   }
 
+  async transitionBacklog(url: string) {
+    let response = await axios.post(
+      url,
+      {
+        update: {
+          comment: [
+            {
+              add: {
+                body: `Associated GitHub Issue is open.`,
+              },
+            },
+          ],
+        },
+        transition: { id: JiraTransitions.Backlog},
+      },
+      { headers: { Authorization: `Bearer ${this.token}` } }
+    );
+    console.log(response);
+  }
+
   async addRemoteLink(jiraUrl: string, url: string, key: string) {
     await axios.post(
       `${jiraUrl}/remotelink`,
@@ -280,7 +300,7 @@ class Jira {
     }
 
     // don't bother updating if all the relevant fields are the same.
-    if (currentSummary == summary && currentDescription == description) {
+    if (currentSummary == summary && currentDescription == description && !(await this.issueIsDone(jiraUrl))) {
       core.info("No changes needed");
       return false;
     }
@@ -300,6 +320,10 @@ class Jira {
       },
       { headers: { Authorization: `Bearer ${this.token}` } }
     );
+
+    if (await this.issueIsDone(jiraUrl)) {
+      await this.transitionBacklog(jiraUrl);
+    }
     return true;
   }
 }
