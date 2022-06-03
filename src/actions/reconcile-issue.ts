@@ -67,8 +67,8 @@ async function reconcileIssue() {
     }
 
     try {
-      if (!jira.issueIsDone(jiraUrl)) {
-        jira.transitionDone(jiraUrl);
+      if (!(await jira.issueIsDone(jiraUrl))) {
+        await jira.transitionDone(jiraUrl);
       }
     } catch (error) {
       core.setFailed(`Something went wrong closing issue ${jiraUrl}: ${error}`);

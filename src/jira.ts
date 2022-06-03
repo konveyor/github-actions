@@ -191,7 +191,7 @@ class Jira {
     // TODO(djzager): Need to move this to QE when appropriate rather than just Done.
     // Perhaps we can inspect the labels?
     let response = await axios.post(
-      url,
+      `${url}/transitions`,
       {
         update: {
           comment: [
@@ -211,7 +211,7 @@ class Jira {
 
   async transitionBacklog(url: string) {
     let response = await axios.post(
-      url,
+      `${url}/transitions`,
       {
         update: {
           comment: [
