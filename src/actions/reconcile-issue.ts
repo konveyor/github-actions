@@ -6,6 +6,8 @@ import { components } from "@octokit/openapi-types";
 
 type Issue = components["schemas"]["issue"];
 
+const commentPrefix = "This issue synced with";
+
 async function reconcileIssue() {
   const inputs = {
     token: core.getInput("token"),
@@ -73,6 +75,8 @@ async function reconcileIssue() {
     } catch (error) {
       core.setFailed(`Something went wrong closing issue ${jiraUrl}: ${error}`);
     }
+    const htmlUrl = await jira.getJiraHTMLUrl(jiraUrl);
+    await ghIssue.ensureComment(`${commentPrefix}: ${htmlUrl}`);
     return;
   }
 
@@ -127,11 +131,9 @@ async function reconcileIssue() {
   try {
     if (jiraUrl != "") {
       core.info(`Jira issue url (${jiraUrl}) found, will update`);
-      const updated = await jira.updateIssue(jiraUrl, jiraIssueParams);
+      await jira.updateIssue(jiraUrl, jiraIssueParams);
       const htmlUrl = await jira.getJiraHTMLUrl(jiraUrl);
-      if (updated) {
-        await ghIssue.addComment(`Jira issue updated: ${htmlUrl}`);
-      }
+      await ghIssue.ensureComment(`${commentPrefix}: ${htmlUrl}`);
       return;
     }
   } catch (error) {
@@ -143,7 +145,7 @@ async function reconcileIssue() {
   try {
     jiraUrl = await jira.createIssue(jiraIssueParams);
     const htmlUrl = await jira.getJiraHTMLUrl(jiraUrl);
-    await ghIssue.addComment(`Jira issue created: ${htmlUrl}`);
+    await ghIssue.ensureComment(`${commentPrefix}: ${htmlUrl}`);
   } catch (error) {
     core.setFailed(`Failed to create Jira Issue: ${error}`);
   }

@@ -83,7 +83,33 @@ class GitHubIssue {
     });
   }
 
-  async addComment(body: string) {
+  // ensureComment creates a comment with ${body} if it cannot
+  // be found in the issue's comments.
+  async ensureComment(body: string) {
+    const octokit = github.getOctokit(this.token);
+
+    // Try  to find the comment
+    for await (const { data: comments } of octokit.paginate.iterator(
+      octokit.rest.issues.listComments,
+      {
+        owner: this.owner,
+        repo: this.repo,
+        issue_number: this.number,
+      }
+    )) {
+      const comment = comments.find(
+        (comment) =>
+          comment.user &&
+          comment.user.login == "" &&
+          comment.body &&
+          comment.body.includes(body)
+      );
+
+      // If we find the comment...we are done
+      if (comment) return;
+    }
+
+    // Create the comment if it doesn't exist
     await github.getOctokit(this.token).rest.issues.createComment({
       owner: this.owner,
       repo: this.repo,

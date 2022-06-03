@@ -154,17 +154,15 @@ class Jira {
       icon: remoteLink.object.icon,
     }));
 
-    console.log(remoteLinks);
     return remoteLinks;
   }
 
   async isRemoteLinkPresent(url: string, key: string): Promise<boolean> {
     const remoteLinks = await this.getJiraRemoteLinks(url);
-    return (
-      remoteLinks.find((link) => {
-        link.title == key;
-      }) !== undefined
-    );
+    const found = remoteLinks.find((link) => link.title == key);
+
+    core.info(`Remote link found: ${found}`);
+    return found !== undefined;
   }
 
   // getJiraIssueStatus returns the current status as a string
@@ -222,7 +220,7 @@ class Jira {
             },
           ],
         },
-        transition: { id: JiraTransitions.Backlog},
+        transition: { id: JiraTransitions.Backlog },
       },
       { headers: { Authorization: `Bearer ${this.token}` } }
     );
@@ -293,6 +291,7 @@ class Jira {
     const addLabels = labels
       .filter((label) => !currentLabels.includes(label))
       .map((str) => ({ add: str }));
+    const isDone = await this.issueIsDone(jiraUrl);
 
     // check for remote link first
     if (!(await this.isRemoteLinkPresent(jiraUrl, key))) {
@@ -300,7 +299,11 @@ class Jira {
     }
 
     // don't bother updating if all the relevant fields are the same.
-    if (currentSummary == summary && currentDescription == description && !(await this.issueIsDone(jiraUrl))) {
+    if (
+      currentSummary == summary &&
+      currentDescription == description &&
+      !isDone
+    ) {
       core.info("No changes needed");
       return false;
     }
@@ -321,7 +324,7 @@ class Jira {
       { headers: { Authorization: `Bearer ${this.token}` } }
     );
 
-    if (await this.issueIsDone(jiraUrl)) {
+    if (isDone) {
       await this.transitionBacklog(jiraUrl);
     }
     return true;
