@@ -23,6 +23,7 @@ on:
   issues:
     types:
       - opened
+      - edited
       - closed
       - labeled
 

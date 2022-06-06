@@ -1,6 +1,8 @@
 import * as core from "@actions/core";
 import axios from "axios";
 
+type LabelOp = {add: string;} | {remove: string;};
+
 // More info about the jira api here.
 // https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issues/#api-group-issues
 
@@ -288,9 +290,12 @@ class Jira {
     const currentSummary = await this.getJiraIssueSummary(jiraUrl);
     const currentDescription = await this.getJiraIssueDescription(jiraUrl);
     const currentLabels = await this.getJiraIssueLabels(jiraUrl);
-    const addLabels = labels
+    const addLabels: LabelOp[] = labels
       .filter((label) => !currentLabels.includes(label))
       .map((str) => ({ add: str }));
+    const rmLabels: LabelOp[] = currentLabels
+      .filter((label) => !labels.includes(label) && label.startsWith('gh:'))
+      .map((str) => ({ remove: str }));
     const isDone = await this.issueIsDone(jiraUrl);
 
     // check for remote link first
@@ -316,7 +321,7 @@ class Jira {
         update: {
           summary: [{ set: summary }],
           description: [{ set: description }],
-          labels: addLabels,
+          labels: addLabels.concat(rmLabels),
         },
         // fields: {
         //   issueType: { id: issueTypeId },
