@@ -257,7 +257,7 @@ class Jira {
     const {
       data: { self: jiraUrl },
     } = await axios.post(
-      this.baseUrl,
+      `${this.baseUrl}/rest/api/2/issue`,
       {
         fields: {
           summary: summary,
