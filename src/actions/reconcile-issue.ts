@@ -14,6 +14,7 @@ async function reconcileIssue() {
     jiraBaseUrl: core.getInput("jiraBaseUrl"),
     jiraToken: core.getInput("jiraToken"),
     jiraProject: core.getInput("jiraProject"),
+    components: core.getInput("components").split(","),
     additionalLabels: core.getInput("additionalLabels").split(","),
   };
 
@@ -111,6 +112,7 @@ async function reconcileIssue() {
     isBug: ghIssue.isBug(),
     summary: ghIssue.getTitle(),
     description: ghIssue.getBody(),
+    components: inputs.components,
     labels: inputs.additionalLabels.concat(
       ghIssue.getRepoId(),
       ghIssue.key(),

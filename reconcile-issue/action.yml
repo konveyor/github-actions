@@ -18,6 +18,9 @@ inputs:
   jiraProject:
     description: Key of the project (ie. MIG)
     required: true
+  components:
+    description: |
+      Comma separated list of components to be added to Jira issues.
   additionalLabels:
     description: |
       Comma separated list of labels that should be added to Jira issues.

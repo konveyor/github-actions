@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import axios from "axios";
 
-type LabelOp = {add: string;} | {remove: string;};
+type LabelOp = { add: string } | { remove: string };
 
 // More info about the jira api here.
 // https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issues/#api-group-issues
@@ -28,6 +28,7 @@ interface JiraIssueParams {
   isBug: boolean;
   summary: string;
   description: string;
+  components: string[];
   labels: string[];
   url: string;
   key: string;
@@ -249,6 +250,7 @@ class Jira {
     isBug,
     summary,
     description,
+    components,
     labels,
     url,
     key,
@@ -269,6 +271,7 @@ class Jira {
             name: issueType,
           },
           labels: labels,
+          components: components.map((str) => ({ name: str })),
         },
       },
       { headers: { Authorization: `Bearer ${this.token}` } }
@@ -282,7 +285,7 @@ class Jira {
 
   async updateIssue(
     jiraUrl: string,
-    { summary, description, labels, url, key }: JiraIssueParams
+    { summary, description, components, labels, url, key }: JiraIssueParams
   ): Promise<boolean> {
     // const issueType = isBug ? "Bug" : "Story";
     // const issueTypeId = JiraIssueTypes[issueType];
@@ -294,7 +297,7 @@ class Jira {
       .filter((label) => !currentLabels.includes(label))
       .map((str) => ({ add: str }));
     const rmLabels: LabelOp[] = currentLabels
-      .filter((label) => !labels.includes(label) && label.startsWith('gh:'))
+      .filter((label) => !labels.includes(label) && label.startsWith("gh:"))
       .map((str) => ({ remove: str }));
     const isDone = await this.issueIsDone(jiraUrl);
 
@@ -322,6 +325,7 @@ class Jira {
           summary: [{ set: summary }],
           description: [{ set: description }],
           labels: addLabels.concat(rmLabels),
+          components: components.map((str) => ({ add: str })),
         },
         // fields: {
         //   issueType: { id: issueTypeId },
