@@ -1,0 +1,26 @@
+name: GitHub Issue Slack Digest
+description: |
+  This action finds all open issues with `hasLabels` but not `missingLabels`
+  and sends the result as a message in Slack.
+branding:
+  icon: 'check-square'
+  color: 'blue'
+inputs:
+  token:
+    description: 'GITHUB_TOKEN or a repo scoped PAT.'
+    default: ${{ github.token }}
+  slackWebhookUrl:
+    description: Webhook URL used for sending messages to specific channels.
+    required: true
+  messageHeader:
+    description: Header to be used in Slack message.
+    required: true
+  hasLabels:
+    description: Labels the issues should have.
+    required: true
+  missingLabels:
+    description: Labels the issues should NOT have.
+    required: false
+runs:
+  using: 'node16'
+  main: '../lib/actions/gh-issue-slack-digest.js'
