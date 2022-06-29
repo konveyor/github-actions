@@ -11,9 +11,10 @@ const commentPrefix = "This issue synced with";
 async function reconcileIssue() {
   const inputs = {
     token: core.getInput("token"),
-    jiraBaseUrl: core.getInput("jiraBaseUrl"),
-    jiraToken: core.getInput("jiraToken"),
-    jiraProject: core.getInput("jiraProject"),
+    jiraBaseUrl: core.getInput("jiraBaseUrl", { required: true }),
+    jiraToken: core.getInput("jiraToken", { required: true }),
+    jiraProject: core.getInput("jiraProject", { required: true }),
+    requireMissingLabels: core.getInput("requireMissingLabels", { required: true }).split(","),
     additionalLabels: core.getInput("additionalLabels").split(","),
   };
 
@@ -80,22 +81,10 @@ async function reconcileIssue() {
     return;
   }
 
-  // We will only write to Jira, GH Issues that have been triaged.
-  // https://www.kubernetes.dev/docs/guide/issue-triage/
-  if (!ghIssue.isTriageAccepted()) {
-    core.info("This issue needs triage");
-    try {
-      if (ghIssue.isNeedsTriage()) {
-        core.info("This issue already marked as needing triage");
-        return;
-      }
-      ghIssue.markNeedsTriage();
-    } catch (error) {
-      core.setFailed(
-        `Failed to set GitHub Issue ${owner}/${repo}#${number} as needing triage: ${error}`
-      );
-    }
-    return;
+  const requiredMissingLabels = inputs.requireMissingLabels.filter((label) => ghIssue.hasLabel(label));
+  if (requiredMissingLabels) {
+    core.info(`This issue has ${requiredMissingLabels} that indicate this issue is not triaged.`);
+    return
   }
 
   // jiraIssueParams are the primary fields we are concerned with updating

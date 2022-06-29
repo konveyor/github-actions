@@ -74,29 +74,6 @@ class GitHubIssue {
     return this.getLabels().includes("kind/bug");
   }
 
-  hasLabelRegexp(regexp: RegExp): boolean {
-    const labels = this.getLabels();
-    core.debug(`Looking for label matching regexp ${regexp.toString()} in ${labels}`);
-    return labels.find((label) => regexp.test(label)) !== undefined;
-  }
-
-  isTriageAccepted(): boolean {
-    return this.getLabels().includes("triage/accepted");
-  }
-
-  isNeedsTriage(): boolean {
-    return this.getLabels().includes("needs-triage");
-  }
-
-  async markNeedsTriage() {
-    await github.getOctokit(this.token).rest.issues.addLabels({
-      owner: this.owner,
-      repo: this.repo,
-      issue_number: this.number,
-      labels: ["needs-triage"],
-    });
-  }
-
   // ensureComment creates a comment with ${body} if it cannot
   // be found in the issue's comments.
   async ensureComment(body: string) {
@@ -143,6 +120,18 @@ class GitHubIssue {
     });
   }
 
+  hasLabel(label: string): boolean {
+    const labels = this.getLabels();
+    core.debug(`Looking for label ${label} in ${labels}`);
+    return labels.includes(label);
+  }
+
+  hasLabelRegexp(regexp: RegExp): boolean {
+    const labels = this.getLabels();
+    core.debug(`Looking for label matching regexp ${regexp.toString()} in ${labels}`);
+    return labels.find((label) => regexp.test(label)) !== undefined;
+  }
+
   // addLabel adds a label to the issue
   async addLabels(labels: string[]) {
     await github.getOctokit(this.token).rest.issues.addLabels({
@@ -155,8 +144,7 @@ class GitHubIssue {
 
   // remove a particular label from an issue, but only if it has the label
   async removeLabel(label: string) {
-    const labels = this.getLabels();
-    if (labels.includes(label)) {
+    if (this.hasLabel(label)) {
       await github.getOctokit(this.token).rest.issues.removeLabel({
         owner: this.owner,
         repo: this.repo,
