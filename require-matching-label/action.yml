@@ -1,0 +1,36 @@
+name: Require Matching Label
+description: |
+  This action is an attempt to duplicate what is done by the
+  require-matching-label plugin in Prow. Their description is included below.
+
+  The require-matching-label plugin is a configurable plugin that applies a
+  label to issues and/or PRs that do not have any labels matching a regular
+  expression.  An example of this is applying a 'needs-sig' label to all issues
+  that do not have a 'sig/*' label. This plugin can have multiple
+  configurations to provide this kind of behavior for multiple different label
+  sets. The configuration allows issue type, PR branch, and an optional
+  explanation comment to be specified.
+branding:
+  icon: 'check-square'
+  color: 'blue'
+inputs:
+  token:
+    description: 'GITHUB_TOKEN or a repo scoped PAT.'
+    default: ${{ github.token }}
+  missingComment:
+    description: |
+      The comment to post when we add the missingLabel to an
+      issue. This is typically used to explain why missingLabel was added and
+      how to move forward.
+      This field is optional. If unspecified, no comment is created when labeling.
+  missingLabel:
+    description: |
+      The label to apply if an issue does not have any label
+      matching the regexp.
+  regexp:
+    description: |
+      Regexp is the string specifying the regular expression used to look for
+      matching labels.
+runs:
+  using: 'node16'
+  main: '../lib/actions/require-matching-label.js'
