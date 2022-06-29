@@ -17,7 +17,9 @@ async function run() {
   const context = github.context;
   const payload = context.payload;
   if (!payload.issue && !payload.pull_request) {
-    core.setFailed("Not an issue or pull request. This action should only be called on issues or pull requests.");
+    core.setFailed(
+      "Not an issue or pull request. This action should only be called on issues or pull requests."
+    );
   }
 
   // Then, go get the issue. Should be the same for pr
@@ -47,14 +49,17 @@ async function run() {
     return;
   }
 
-  const regexp = new RegExp(inputs.regexp)
+  const regexp = new RegExp(inputs.regexp);
   if (ghIssue.hasLabelRegexp(regexp)) {
     core.info("Issue has label matching expression. Do nothing.");
-    // add label
   }
 
+  core.info(`Adding label ${inputs.missingLabel}.`);
+  await ghIssue.addLabels([inputs.missingLabel]);
+
   if (inputs.missingComment) {
-      await ghIssue.ensureComment(inputs.missingComment);
+    core.info(`Adding comment if not already present.`);
+    await ghIssue.ensureComment(inputs.missingComment);
   }
 }
 

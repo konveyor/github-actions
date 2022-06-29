@@ -128,6 +128,27 @@ class GitHubIssue {
       body: body,
     });
   }
+
+  // addComment creates a comment with ${body}
+  async addComment(body: string) {
+    await github.getOctokit(this.token).rest.issues.createComment({
+      owner: this.owner,
+      repo: this.repo,
+      issue_number: this.number,
+      body: body,
+    });
+  }
+
+  // addLabel adds a label to the issue
+  async addLabels(labels: string[]) {
+    await github.getOctokit(this.token).rest.issues.addLabels({
+      owner: this.owner,
+      repo: this.repo,
+      issue_number: this.number,
+      labels: labels,
+    });
+  }
+
 }
 
 export { GitHubIssue };
