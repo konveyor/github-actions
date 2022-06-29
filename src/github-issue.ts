@@ -129,6 +129,7 @@ class GitHubIssue {
     });
   }
 
+
   // addComment creates a comment with ${body}
   async addComment(body: string) {
     await github.getOctokit(this.token).rest.issues.createComment({
@@ -146,6 +147,16 @@ class GitHubIssue {
       repo: this.repo,
       issue_number: this.number,
       labels: labels,
+    });
+  }
+
+  // remove a particular label from an issue
+  async removeLabel(label: string) {
+    await github.getOctokit(this.token).rest.issues.removeLabel({
+      owner: this.owner,
+      repo: this.repo,
+      issue_number: this.number,
+      name: label,
     });
   }
 
