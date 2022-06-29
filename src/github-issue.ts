@@ -109,7 +109,6 @@ class GitHubIssue {
     });
   }
 
-
   // addComment creates a comment with ${body}
   async addComment(body: string) {
     await github.getOctokit(this.token).rest.issues.createComment({
@@ -121,9 +120,7 @@ class GitHubIssue {
   }
 
   hasLabel(label: string): boolean {
-    const labels = this.getLabels();
-    core.debug(`Looking for label ${label} in ${labels}`);
-    return labels.includes(label);
+    return this.getLabels().includes(label);
   }
 
   hasLabelRegexp(regexp: RegExp): boolean {

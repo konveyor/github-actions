@@ -14,7 +14,10 @@ async function reconcileIssue() {
     jiraBaseUrl: core.getInput("jiraBaseUrl", { required: true }),
     jiraToken: core.getInput("jiraToken", { required: true }),
     jiraProject: core.getInput("jiraProject", { required: true }),
-    requireMissingLabels: core.getInput("requireMissingLabels", { required: true }).split(","),
+    requireMissingLabels: core
+      .getInput("requireMissingLabels", { required: true })
+      .split(",")
+      .map((element) => element.trim()),
     additionalLabels: core.getInput("additionalLabels").split(","),
   };
 
@@ -81,10 +84,14 @@ async function reconcileIssue() {
     return;
   }
 
-  const requiredMissingLabels = inputs.requireMissingLabels.filter((label) => ghIssue.hasLabel(label));
+  const requiredMissingLabels = inputs.requireMissingLabels.filter((label) =>
+    ghIssue.hasLabel(label)
+  );
   if (requiredMissingLabels) {
-    core.info(`This issue has ${requiredMissingLabels} that indicate this issue is not triaged.`);
-    return
+    core.warning(
+      `This issue has ${requiredMissingLabels} that indicate this issue is not triaged.`
+    );
+    return;
   }
 
   // jiraIssueParams are the primary fields we are concerned with updating
