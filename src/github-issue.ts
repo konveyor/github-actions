@@ -74,7 +74,7 @@ class GitHubIssue {
   }
 
   hasLabelRegexp(regexp: RegExp): boolean {
-    return this.getLabels().find((label) => regexp.test(label)) !== "undefined";
+    return this.getLabels().find((label) => regexp.test(label)) !== undefined;
   }
 
   isTriageAccepted(): boolean {
