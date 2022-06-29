@@ -12,7 +12,7 @@ on:
 # This prevents potential race conditions by only allowing this action to handle
 # one update at a time for a given issue.
 concurrency:
-  group: ${{ github.event.issue.number }}
+  group: reconcile-${{ github.event.issue.number }}
   cancel-in-progress: true
 
 jobs:
