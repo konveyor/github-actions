@@ -51,7 +51,7 @@ async function run() {
 
   const regexp = new RegExp(inputs.regexp);
   if (ghIssue.hasLabelRegexp(regexp)) {
-    core.info("Issue has label matching expression. Do nothing.");
+    core.info("Issue has label matching expression.");
     await ghIssue.removeLabel(inputs.missingLabel);
     return;
   }

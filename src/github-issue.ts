@@ -1,3 +1,4 @@
+import * as core from "@actions/core";
 import { components } from "@octokit/openapi-types";
 import * as github from "@actions/github";
 
@@ -74,7 +75,9 @@ class GitHubIssue {
   }
 
   hasLabelRegexp(regexp: RegExp): boolean {
-    return this.getLabels().find((label) => regexp.test(label)) !== undefined;
+    const labels = this.getLabels();
+    core.debug(`Looking for label matching regexp ${regexp.toString()} in ${labels}`);
+    return labels.find((label) => regexp.test(label)) !== undefined;
   }
 
   isTriageAccepted(): boolean {
@@ -150,14 +153,17 @@ class GitHubIssue {
     });
   }
 
-  // remove a particular label from an issue
+  // remove a particular label from an issue, but only if it has the label
   async removeLabel(label: string) {
-    await github.getOctokit(this.token).rest.issues.removeLabel({
-      owner: this.owner,
-      repo: this.repo,
-      issue_number: this.number,
-      name: label,
-    });
+    const labels = this.getLabels();
+    if (labels.includes(label)) {
+      await github.getOctokit(this.token).rest.issues.removeLabel({
+        owner: this.owner,
+        repo: this.repo,
+        issue_number: this.number,
+        name: label,
+      });
+    }
   }
 
 }
