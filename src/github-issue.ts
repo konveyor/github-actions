@@ -1,3 +1,4 @@
+import * as core from "@actions/core";
 import { components } from "@octokit/openapi-types";
 import * as github from "@actions/github";
 
@@ -73,23 +74,6 @@ class GitHubIssue {
     return this.getLabels().includes("kind/bug");
   }
 
-  isTriageAccepted(): boolean {
-    return this.getLabels().includes("triage/accepted");
-  }
-
-  isNeedsTriage(): boolean {
-    return this.getLabels().includes("needs-triage");
-  }
-
-  async markNeedsTriage() {
-    await github.getOctokit(this.token).rest.issues.addLabels({
-      owner: this.owner,
-      repo: this.repo,
-      issue_number: this.number,
-      labels: ["needs-triage"],
-    });
-  }
-
   // ensureComment creates a comment with ${body} if it cannot
   // be found in the issue's comments.
   async ensureComment(body: string) {
@@ -124,6 +108,49 @@ class GitHubIssue {
       body: body,
     });
   }
+
+  // addComment creates a comment with ${body}
+  async addComment(body: string) {
+    await github.getOctokit(this.token).rest.issues.createComment({
+      owner: this.owner,
+      repo: this.repo,
+      issue_number: this.number,
+      body: body,
+    });
+  }
+
+  hasLabel(label: string): boolean {
+    return this.getLabels().includes(label);
+  }
+
+  hasLabelRegexp(regexp: RegExp): boolean {
+    const labels = this.getLabels();
+    core.debug(`Looking for label matching regexp ${regexp.toString()} in ${labels}`);
+    return labels.find((label) => regexp.test(label)) !== undefined;
+  }
+
+  // addLabel adds a label to the issue
+  async addLabels(labels: string[]) {
+    await github.getOctokit(this.token).rest.issues.addLabels({
+      owner: this.owner,
+      repo: this.repo,
+      issue_number: this.number,
+      labels: labels,
+    });
+  }
+
+  // remove a particular label from an issue, but only if it has the label
+  async removeLabel(label: string) {
+    if (this.hasLabel(label)) {
+      await github.getOctokit(this.token).rest.issues.removeLabel({
+        owner: this.owner,
+        repo: this.repo,
+        issue_number: this.number,
+        name: label,
+      });
+    }
+  }
+
 }
 
 export { GitHubIssue };

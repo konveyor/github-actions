@@ -18,6 +18,11 @@ inputs:
   jiraProject:
     description: Key of the project (ie. MIG)
     required: true
+  requireMissingLabels:
+    description: |
+      Comma separated list of labels the GitHub Issue must NOT have in order
+      to be considered triaged.
+    default: 'needs-triage'
   additionalLabels:
     description: |
       Comma separated list of labels that should be added to Jira issues.
