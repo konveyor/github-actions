@@ -15,5 +15,5 @@ jobs:
         uses: konveyor/github-actions/gh-issue-slack-digest@main
         with:
           slackWebhookUrl: ${{ secretes.SLACK_WEBHOOK_URL }}
-          messageHeader: "Issues needing triage for ..."
+          messageHeaderPrefix: "Issues needing triage"
           hasLabels: "needs-triage"

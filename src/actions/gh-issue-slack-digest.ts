@@ -9,7 +9,7 @@ async function makeDigest() {
   const inputs = {
     token: core.getInput("token"),
     webhookUrl: core.getInput("slackWebhookUrl"),
-    header: core.getInput("messageHeader"),
+    headerPrefix: core.getInput("messageHeaderPrefix"),
     hasLabels: core.getInput("hasLabels"),
     missingLabels: core
       .getInput("missingLabels")
@@ -81,7 +81,7 @@ async function makeDigest() {
       type: "header",
       text: {
         type: "plain_text",
-        text: inputs.header,
+        text: `${inputs.headerPrefix}: ${owner}/${repo}`,
       },
     },
     ...issueBlocks,
