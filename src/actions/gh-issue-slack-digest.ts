@@ -11,7 +11,16 @@ async function makeDigest() {
     webhookUrl: core.getInput("slackWebhookUrl"),
     header: core.getInput("messageHeader"),
     hasLabels: core.getInput("hasLabels"),
-    missingLabels: core.getInput("missingLabels").split(","),
+    missingLabels: core
+      .getInput("missingLabels")
+      .split(",")
+      .map((element) => element.trim()),
+    // TODO(djzager): figure out multiple mentions (users + groups)
+    // https://api.slack.com/reference/surfaces/formatting#mentioning-users
+    mentionUsers: core
+      .getInput("mentionUsers")
+      .split(",")
+      .map((element) => element.trim()),
   };
 
   // First, make sure we are looking at the right thing.
@@ -47,14 +56,6 @@ async function makeDigest() {
     });
   });
 
-  const headerBlock = {
-    type: "header",
-    text: {
-      type: "plain_text",
-      text: inputs.header,
-    },
-  };
-  
   let issueBlocks = issues.map((issue) => ({
     type: "section",
     text: {
@@ -64,16 +65,34 @@ async function makeDigest() {
   }));
 
   if (issueBlocks.length == 0) {
-    issueBlocks = [{
+    issueBlocks = [
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `No issues found with labels: ${inputs.hasLabels}\nwithout labels: ${inputs.missingLabels}`,
+        },
+      },
+    ];
+  }
+
+  const blocks = [
+    {
+      type: "header",
+      text: {
+        type: "plain_text",
+        text: inputs.header,
+      },
+    },
+    ...issueBlocks,
+    inputs.mentionUsers && {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `No issues found with labels: ${inputs.hasLabels} without labels: ${inputs.missingLabels}`,
+        text: `cc ${inputs.mentionUsers.join(" ")}`,
       },
-    }]
-  }
-
-  const blocks = [headerBlock].concat(issueBlocks);
+    },
+  ];
 
   // send message
   let response = await axios.post(inputs.webhookUrl, {

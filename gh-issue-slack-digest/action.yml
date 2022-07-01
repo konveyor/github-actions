@@ -21,6 +21,9 @@ inputs:
   missingLabels:
     description: Labels the issues should NOT have.
     required: false
+  mentionUsers:
+    description: Comma separated list of users to mention.
+    required: false
 runs:
   using: 'node16'
   main: '../lib/actions/gh-issue-slack-digest.js'
