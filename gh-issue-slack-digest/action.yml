@@ -12,8 +12,8 @@ inputs:
   slackWebhookUrl:
     description: Webhook URL used for sending messages to specific channels.
     required: true
-  messageHeader:
-    description: Header to be used in Slack message.
+  messageHeaderPrefix:
+    description: Header prefix to be used in Slack message.
     required: true
   hasLabels:
     description: Labels the issues should have.
