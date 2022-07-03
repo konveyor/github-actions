@@ -3,6 +3,8 @@ import axios from "axios";
 
 type LabelOp = {add: string;} | {remove: string;};
 
+import { JiraWatcherManager } from './watchers';
+
 // More info about the jira api here.
 // https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issues/#api-group-issues
 
@@ -301,6 +303,14 @@ class Jira {
     // check for remote link first
     if (!(await this.isRemoteLinkPresent(jiraUrl, key))) {
       await this.addRemoteLink(jiraUrl, url, key);
+    }
+
+    // Ensure watchers from watch group are subscribed for updated
+    const jwm = new JiraWatcherManager(jiraUrl, this.token);
+    try {
+      await jwm.ensureDesiredWatchers();
+    } catch(err) {
+      core.error(`${err}`);
     }
 
     // don't bother updating if all the relevant fields are the same.
