@@ -279,6 +279,14 @@ class Jira {
     // Add remote link
     await this.addRemoteLink(jiraUrl, url, key);
 
+    // Ensure watchers from watch group are subscribed for updated
+    const jwm = new JiraWatcherManager(jiraUrl, this.token);
+    try {
+      await jwm.ensureDesiredWatchers();
+    } catch(err) {
+      core.error(`${err}`);
+    }
+
     return jiraUrl;
   }
 
