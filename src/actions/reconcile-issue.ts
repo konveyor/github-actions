@@ -87,7 +87,7 @@ async function reconcileIssue() {
   const requiredMissingLabels = inputs.requireMissingLabels.filter((label) =>
     ghIssue.hasLabel(label)
   );
-  if (requiredMissingLabels) {
+  if (requiredMissingLabels.length !== 0) {
     core.warning(
       `This issue has ${requiredMissingLabels} that indicate this issue is not triaged.`
     );
