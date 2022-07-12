@@ -5,28 +5,12 @@ class JiraWatcherManager {
   private jiraIssueUrl: string;
   private botToken: string;
   private issueKey: string;
-  private desiredWatchers: string[];
+  private autoWatchAccounts: string[];
 
   constructor(jiraIssueUrl: string, botToken: string) {
-    ////////////////////////////////////////////////////////////////////////////
-    // TODO: I originally had this in a dat/desired-watchers.json file, but to
-    // my surprise, this json file got dropped into the lib directory without
-    // actually updating with my edits to the src/ json file. This will result
-    // in less surprises, but this should get parameterized in a manner that's
-    // easily changed, or perhaps consumed by the environment
-    // NOTE: For unknown reasons, ernelson@redhat.com can be added as a watcher
-    // to any project=MTRHO issue. migeng-robot@redhat.com will result in a 400
-    // error. I have attempted to authorize with a token as both ernelson@redhat.com
-    // and migeng-robot@redhat.com thinking that maybe the API would only allow
-    // for the authenticating user to add themselves and not anyone else, but
-    // that does not appear to be the case. Both of these users have the project
-    // permission, inherited via the Administrators group, to manager watchers
-    // other than themselves. Need to dig into this if we want to add other users
-    // here. The exact permissions necessary should be documented.
-    this.desiredWatchers = [
-      'ernelson@redhat.com',
-    ];
-    ////////////////////////////////////////////////////////////////////////////
+    const autoWatchAccounts = core.getInput('autoWatchAccounts');
+    this.autoWatchAccounts = autoWatchAccounts ?
+      autoWatchAccounts.split(',') : [];
 
     this.jiraIssueUrl = jiraIssueUrl;
     this.botToken = botToken;
@@ -109,14 +93,20 @@ class JiraWatcherManager {
   }
 
   async ensureDesiredWatchers() {
+    if(this.autoWatchAccounts.length === 0) {
+      core.info('No desired watchers have been configured and none will be added');
+      return
+    }
+
+    core.info(`autoWatchAccounts: ${JSON.stringify(this.autoWatchAccounts)}`);
     core.info('Ensuring desired watchers');
     core.info('Desired watcher list:');
-    core.info(JSON.stringify(this.desiredWatchers));
+    core.info(JSON.stringify(this.autoWatchAccounts));
     const currentWatchers = await this.getJiraIssueWatchers();
     core.info('Current watcher list:')
     core.info(JSON.stringify(currentWatchers));
 
-    const watchersToAdd : string [] = this.desiredWatchers.reduce((toAdd : string[], d) => {
+    const watchersToAdd : string [] = this.autoWatchAccounts.reduce((toAdd : string[], d) => {
       return currentWatchers.includes(d) ? toAdd : [...toAdd, d];
     }, []);
 
