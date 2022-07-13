@@ -5,12 +5,12 @@ class JiraWatcherManager {
   private jiraIssueUrl: string;
   private botToken: string;
   private issueKey: string;
-  private autoWatchAccounts: string[];
+  private addWatchers: string[];
 
   constructor(jiraIssueUrl: string, botToken: string) {
-    const autoWatchAccounts = core.getInput('autoWatchAccounts');
-    this.autoWatchAccounts = autoWatchAccounts ?
-      autoWatchAccounts.split(',') : [];
+    const addWatchers = core.getInput('addWatchers');
+    this.addWatchers = addWatchers ?
+      addWatchers.split(',') : [];
 
     this.jiraIssueUrl = jiraIssueUrl;
     this.botToken = botToken;
@@ -93,20 +93,20 @@ class JiraWatcherManager {
   }
 
   async ensureDesiredWatchers() {
-    if(this.autoWatchAccounts.length === 0) {
+    if(this.addWatchers.length === 0) {
       core.info('No desired watchers have been configured and none will be added');
       return
     }
 
-    core.info(`autoWatchAccounts: ${JSON.stringify(this.autoWatchAccounts)}`);
+    core.info(`addWatchers: ${JSON.stringify(this.addWatchers)}`);
     core.info('Ensuring desired watchers');
     core.info('Desired watcher list:');
-    core.info(JSON.stringify(this.autoWatchAccounts));
+    core.info(JSON.stringify(this.addWatchers));
     const currentWatchers = await this.getJiraIssueWatchers();
     core.info('Current watcher list:')
     core.info(JSON.stringify(currentWatchers));
 
-    const watchersToAdd : string [] = this.autoWatchAccounts.reduce((toAdd : string[], d) => {
+    const watchersToAdd : string [] = this.addWatchers.reduce((toAdd : string[], d) => {
       return currentWatchers.includes(d) ? toAdd : [...toAdd, d];
     }, []);
 
