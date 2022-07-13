@@ -98,13 +98,11 @@ class JiraWatcherManager {
       return
     }
 
-    core.info(`addWatchers: ${JSON.stringify(this.addWatchers)}`);
-    core.info('Ensuring desired watchers');
-    core.info('Desired watcher list:');
-    core.info(JSON.stringify(this.addWatchers));
+    core.debug('Ensuring desired watchers');
+    core.debug(JSON.stringify(this.addWatchers));
     const currentWatchers = await this.getJiraIssueWatchers();
-    core.info('Current watcher list:')
-    core.info(JSON.stringify(currentWatchers));
+    core.debug('Current watcher list:')
+    core.debug(JSON.stringify(currentWatchers));
 
     const watchersToAdd : string [] = this.addWatchers.reduce((toAdd : string[], d) => {
       return currentWatchers.includes(d) ? toAdd : [...toAdd, d];
