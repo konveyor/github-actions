@@ -9,6 +9,7 @@ class JiraWatcherManager {
 
   constructor(jiraIssueUrl: string, botToken: string) {
     const addWatchers = core.getInput('addWatchers');
+    core.debug(`Raw addWatchers: "${addWatchers}"`);
     this.addWatchers = addWatchers ?
       addWatchers.split(',') : [];
 

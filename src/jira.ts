@@ -165,7 +165,7 @@ class Jira {
     const remoteLinks = await this.getJiraRemoteLinks(url);
     const found = remoteLinks.find((link) => link.title == key);
 
-    core.info(`Remote link found: ${found}`);
+    core.debug(`Remote link found: ${JSON.stringify(found)}`);
     return found !== undefined;
   }
 
