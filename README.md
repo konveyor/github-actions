@@ -11,6 +11,8 @@ Actions exposed in this project include:
     Issues.
 
 ## Contributing
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fkonveyor%2Fgithub-actions.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fkonveyor%2Fgithub-actions?ref=badge_shield)
+
 
 Install dependencies.
 
@@ -39,3 +41,7 @@ member to work on.
 This workflow can be found at
 [workflows/reconcile_gh_issue.yaml](./workflows/reconcile_gh_issue.yaml). To
 use, simply copy the workflow to `${DESIRED_PROJECT_ROOT}/.github/workflows`.
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fkonveyor%2Fgithub-actions.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fkonveyor%2Fgithub-actions?ref=badge_large)
